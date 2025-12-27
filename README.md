@@ -3,8 +3,8 @@
 **Consistent motion and prompt adherence for Wan 2.2 video generation.**
 
 **TL;DR:**
-- **Chunked generation (best use case)**: Stable motion provides clean anchors AND makes the next chunk far more likely to correctly continue the direction of a given action
-- **Single generation**: Smooths motion reversal and "ping-pong" in 81+ frame generations
+- **Chunked generation (best and most reliable use case)**: Stable motion provides clean anchors AND makes the next chunk far more likely to correctly continue the direction of a given action
+- **Single generation**: Can smooth motion reversal and "ping-pong" in 81+ frame generations.
 
 Works with both **i2v** (image-to-video) and **t2v** (text-to-video), though i2v sees the most benefit due to anchor-based continuation.
 
