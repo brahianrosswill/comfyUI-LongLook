@@ -217,6 +217,8 @@ def freelong_spectral_blend(
     Low frequencies from global (structure/motion direction),
     High frequencies from local (details/sharpness).
 
+    Memory-optimized: Uses single FFT pass instead of two separate filter calls.
+
     Args:
         global_features: Features from full-sequence attention
         local_features: Features from windowed attention
@@ -229,18 +231,48 @@ def freelong_spectral_blend(
     if blend_strength == 0.0:
         return local_features
 
-    # Get low-freq from global, high-freq from local
-    global_low = freelong_freq_filter(global_features, low_freq_ratio, "low")
-    local_high = freelong_freq_filter(local_features, low_freq_ratio, "high")
+    # Convert to float32 for FFT (cuFFT doesn't support half precision for non-power-of-two)
+    orig_dtype = global_features.dtype
+    global_float = global_features.float()
+    local_float = local_features.float()
 
-    # Blend with strength control
-    blended = global_low + local_high
+    # Single FFT pass for both streams
+    global_freq = torch.fft.rfft(global_float, dim=1)
+    local_freq = torch.fft.rfft(local_float, dim=1)
+    del global_float, local_float  # Free immediately
+
+    # Build low-pass mask
+    num_freq = global_freq.shape[1]
+    cutoff = int(num_freq * low_freq_ratio)
+    transition_width = max(1, min(num_freq // 4, cutoff // 2))
+
+    low_mask = torch.ones(num_freq, device=global_features.device, dtype=torch.float32)
+    transition_start = max(0, cutoff - transition_width // 2)
+    transition_end = min(num_freq, cutoff + transition_width // 2)
+
+    if transition_end > transition_start:
+        transition_idx = torch.arange(transition_start, transition_end, device=global_features.device, dtype=torch.float32)
+        transition_values = 0.5 * (1 + torch.cos(torch.pi * (transition_idx - transition_start) / (transition_end - transition_start)))
+        low_mask[transition_start:transition_end] = transition_values
+        del transition_idx, transition_values
+
+    low_mask[transition_end:] = 0.0
+    low_mask = low_mask.view(1, -1, *([1] * (len(global_freq.shape) - 2)))
+
+    # Blend in frequency domain: low from global, high from local
+    # high_mask = 1 - low_mask, so: global*low + local*high = global*low + local*(1-low)
+    blended_freq = global_freq * low_mask + local_freq * (1.0 - low_mask)
+    del global_freq, local_freq, low_mask  # Free immediately
+
+    # Inverse FFT
+    result = torch.fft.irfft(blended_freq, n=global_features.shape[1], dim=1)
+    del blended_freq
 
     # Mix with original based on blend_strength
     if blend_strength < 1.0:
-        return local_features * (1.0 - blend_strength) + blended * blend_strength
+        result = local_features.float() * (1.0 - blend_strength) + result * blend_strength
 
-    return blended
+    return result.to(orig_dtype)
 
 
 # ============================================================================
@@ -540,9 +572,14 @@ class WanFreeLong:
 
                     weights = weights.view(1, window_frames, 1, 1)
 
-                    # Accumulate weighted results
-                    local_x_temporal[:, start_frame:end_frame] += window_result * weights
-                    weight_accumulator[:, start_frame:end_frame] += weights
+                    # Accumulate weighted results (in-place for memory efficiency)
+                    weighted_result = window_result * weights
+                    local_x_temporal[:, start_frame:end_frame].add_(weighted_result)
+                    weight_accumulator[:, start_frame:end_frame].add_(weights)
+
+                    # Free window tensors immediately
+                    del window_x, window_flat, window_args, window_out
+                    del window_result, weights, weighted_result
 
                     # Move to next window position
                     start_frame += stride
@@ -552,8 +589,10 @@ class WanFreeLong:
 
                 # Normalize by accumulated weights
                 weight_accumulator = weight_accumulator.clamp(min=1e-8)
-                local_x_temporal = local_x_temporal / weight_accumulator
+                local_x_temporal.div_(weight_accumulator)  # In-place division
+                del weight_accumulator
                 local_x = local_x_temporal.reshape(batch_size, seq_len, hidden_dim)
+                del local_x_temporal, x_temporal
 
                 # ============ SPECTRAL BLEND ============
                 # Low frequencies from global (motion direction/consistency)
@@ -567,6 +606,9 @@ class WanFreeLong:
                     logger.info(f"  Blend strength: {strength:.0%}")
 
                 blended_x = freelong_spectral_blend(global_x, local_x, low_ratio, strength)
+
+                # Free large intermediate tensors
+                del global_x, local_x
 
                 return {"img": blended_x}
 
