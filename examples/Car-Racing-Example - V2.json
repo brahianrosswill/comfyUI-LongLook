@@ -1444,13 +1444,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk5_00021.mp4",
+            "filename": "Chunk5_00022.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk5_00021.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk5_00021.mp4"
+            "workflow": "Chunk5_00022.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk5_00022.mp4"
           }
         }
       }
@@ -1527,13 +1527,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk6_00024.mp4",
+            "filename": "Chunk6_00025.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk6_00024.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk6_00024.mp4"
+            "workflow": "Chunk6_00025.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk6_00025.mp4"
           }
         }
       }
@@ -1610,13 +1610,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk7_00021.mp4",
+            "filename": "Chunk7_00022.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk7_00021.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk7_00021.mp4"
+            "workflow": "Chunk7_00022.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk7_00022.mp4"
           }
         }
       }
@@ -1693,13 +1693,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk8_00025.mp4",
+            "filename": "Chunk8_00026.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk8_00025.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk8_00025.mp4"
+            "workflow": "Chunk8_00026.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk8_00026.mp4"
           }
         }
       }
@@ -2643,51 +2643,6 @@
       ],
       "color": "#432",
       "bgcolor": "#653"
-    },
-    {
-      "id": 187,
-      "type": "SetNode",
-      "pos": [
-        1805.4739436467692,
-        665.5265670617697
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 81,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "link": 470
-        }
-      ],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": null
-        }
-      ],
-      "title": "Set_VAE",
-      "properties": {
-        "previousName": "VAE",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.5.2",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "VAE"
-      ],
-      "color": "#322",
-      "bgcolor": "#533"
     },
     {
       "id": 247,
@@ -5498,13 +5453,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "16fpsPreview_00028.mp4",
+            "filename": "16fpsPreview_00029.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "16fpsPreview_00028.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\16fpsPreview_00028.mp4"
+            "workflow": "16fpsPreview_00029.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\16fpsPreview_00029.mp4"
           }
         }
       }
@@ -6521,6 +6476,51 @@
         "lanczos",
         "608x336"
       ]
+    },
+    {
+      "id": 187,
+      "type": "SetNode",
+      "pos": [
+        806.4805261027294,
+        573.0782811840755
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 81,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "link": 470
+        }
+      ],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "title": "Set_VAE",
+      "properties": {
+        "previousName": "VAE",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "VAE"
+      ],
+      "color": "#322",
+      "bgcolor": "#533"
     }
   ],
   "links": [
@@ -13294,10 +13294,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.33809166040571587,
+      "scale": 0.4950000000000115,
       "offset": [
-        78.63435200842491,
-        1969.2968849845845
+        -262.91294482452577,
+        1462.7695411403147
       ]
     },
     "frontendVersion": "1.34.9",
