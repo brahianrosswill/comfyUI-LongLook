@@ -146,66 +146,6 @@ class WanContinuationConditioning:
 # FreeLong Helper Functions
 # ============================================================================
 
-def freelong_freq_filter(x: torch.Tensor, threshold: float, filter_type: str = "low") -> torch.Tensor:
-    """
-    Apply frequency filtering along the temporal (frame) dimension.
-
-    Uses complementary filters that sum to 1.0 at all frequencies.
-
-    Args:
-        x: Tensor of shape [batch, frames, spatial, dim] or [batch, seq, dim]
-        threshold: Cutoff frequency ratio (0.0 to 1.0)
-        filter_type: "low" for low-pass, "high" for high-pass
-
-    Returns:
-        Filtered tensor
-    """
-    # cuFFT doesn't support half precision for non-power-of-two sizes
-    # Convert to float32 for FFT, then back to original dtype
-    orig_dtype = x.dtype
-    x_float = x.float()
-
-    # FFT along frame/sequence dimension
-    freq = torch.fft.rfft(x_float, dim=1)
-
-    # Create frequency mask (in float32)
-    # Use smooth cosine transition that sums to 1.0 with complement
-    num_freq = freq.shape[1]
-    cutoff = int(num_freq * threshold)
-
-    # Width of transition zone (at least 1, at most 25% of spectrum)
-    transition_width = max(1, min(num_freq // 4, cutoff // 2))
-
-    # Create smooth low-pass mask using cosine transition
-    # This ensures low + high = 1.0 at all frequencies
-    mask = torch.ones(num_freq, device=x.device, dtype=torch.float32)
-
-    # Transition zone centered around cutoff
-    transition_start = max(0, cutoff - transition_width // 2)
-    transition_end = min(num_freq, cutoff + transition_width // 2)
-
-    if transition_end > transition_start:
-        # Cosine transition from 1 to 0 for low-pass
-        transition_idx = torch.arange(transition_start, transition_end, device=x.device, dtype=torch.float32)
-        transition_values = 0.5 * (1 + torch.cos(torch.pi * (transition_idx - transition_start) / (transition_end - transition_start)))
-        mask[transition_start:transition_end] = transition_values
-
-    # Set values outside transition
-    mask[transition_end:] = 0.0
-
-    if filter_type == "high":
-        # High-pass is complement of low-pass: high = 1 - low
-        mask = 1.0 - mask
-
-    # Apply mask (keep in float32)
-    mask = mask.view(1, -1, *([1] * (len(freq.shape) - 2)))
-    filtered_freq = freq * mask
-
-    # Inverse FFT and convert back to original dtype
-    result = torch.fft.irfft(filtered_freq, n=x.shape[1], dim=1)
-    return result.to(orig_dtype)
-
-
 def freelong_spectral_blend(
     global_features: torch.Tensor,
     local_features: torch.Tensor,
@@ -447,74 +387,94 @@ class WanFreeLong:
                 # We need to estimate the temporal structure
                 # For 81 frame video: 21 latent frames, so spatial = seq_len / 21
 
-                # Try to infer frame count from sequence length
-                # Common Wan resolutions and their spatial token counts:
-                # 1280x720 -> 160x90/4 = 40x22.5 -> ~900 tokens per frame (after 2x2 patch)
-                # 848x480 -> 106x60/4 = 26.5x15 -> ~400 tokens per frame
-                # We'll try common latent frame counts: 21, 17, 13, 9, 5
+                # Use cached values if available (avoids repeated detection across 40 blocks)
+                cached_seq_len = freelong_settings.get("cached_seq_len")
+                if cached_seq_len == seq_len:
+                    # Use cached values
+                    num_frames = freelong_settings["cached_num_frames"]
+                    spatial_size = freelong_settings["cached_spatial_size"]
+                    freqs_seq_dim = freelong_settings.get("cached_freqs_seq_dim")
+                    overlap = freelong_settings["cached_overlap"]
+                    stride = freelong_settings["cached_stride"]
+                else:
+                    # First time or seq_len changed - detect and cache
+                    # Try to infer frame count from sequence length
+                    # Common Wan resolutions and their spatial token counts:
+                    # 1280x720 -> 160x90/4 = 40x22.5 -> ~900 tokens per frame (after 2x2 patch)
+                    # 848x480 -> 106x60/4 = 26.5x15 -> ~400 tokens per frame
+                    # We'll try common latent frame counts: 21, 17, 13, 9, 5
 
-                num_frames = None
-                for candidate_frames in [21, 17, 13, 9, 5]:
-                    if seq_len % candidate_frames == 0:
-                        num_frames = candidate_frames
-                        break
+                    num_frames = None
+                    for candidate_frames in [21, 17, 13, 9, 5]:
+                        if seq_len % candidate_frames == 0:
+                            num_frames = candidate_frames
+                            break
 
-                if num_frames is None or num_frames <= window_size:
-                    # Can't determine temporal structure or window covers all frames
-                    # Fall back to just using global output with spectral smoothing
-                    if freelong_settings.get("log_fallback", True):
-                        freelong_settings["log_fallback"] = False
-                        if num_frames is None:
-                            logger.warning(f"[FreeLong] Could not determine temporal structure (seq_len={seq_len})")
-                        else:
-                            logger.warning(f"[FreeLong] Window size >= frames ({window_size} >= {num_frames})")
-                        logger.warning("[FreeLong] Using fallback: spectral smoothing without windowing")
-                    blended_x = freelong_spectral_blend(global_x, global_x, low_ratio, strength)
-                    return {"img": blended_x}
+                    if num_frames is None or num_frames <= window_size:
+                        # Can't determine temporal structure or window covers all frames
+                        # Fall back to just using global output with spectral smoothing
+                        if freelong_settings.get("log_fallback", True):
+                            freelong_settings["log_fallback"] = False
+                            if num_frames is None:
+                                logger.warning(f"[FreeLong] Could not determine temporal structure (seq_len={seq_len})")
+                            else:
+                                logger.warning(f"[FreeLong] Window size >= frames ({window_size} >= {num_frames})")
+                            logger.warning("[FreeLong] Using fallback: spectral smoothing without windowing")
+                        blended_x = freelong_spectral_blend(global_x, global_x, low_ratio, strength)
+                        return {"img": blended_x}
 
-                spatial_size = seq_len // num_frames
+                    spatial_size = seq_len // num_frames
+                    overlap = window_size // 2
+                    stride = window_size - overlap
 
-                # Log temporal structure detection on first run
-                if freelong_settings.get("log_structure", True):
-                    freelong_settings["log_structure"] = False
-                    logger.info(f"  Detected temporal structure: {num_frames} frames × {spatial_size} spatial tokens")
+                    # Detect RoPE sequence dimension
+                    freqs = block_args.get("pe")
+                    freqs_seq_dim = None
+                    if freqs is not None:
+                        for dim_idx, dim_size in enumerate(freqs.shape):
+                            if dim_size == seq_len:
+                                freqs_seq_dim = dim_idx
+                                break
+
+                    # Cache all computed values
+                    freelong_settings["cached_seq_len"] = seq_len
+                    freelong_settings["cached_num_frames"] = num_frames
+                    freelong_settings["cached_spatial_size"] = spatial_size
+                    freelong_settings["cached_freqs_seq_dim"] = freqs_seq_dim
+                    freelong_settings["cached_overlap"] = overlap
+                    freelong_settings["cached_stride"] = stride
+
+                    # Precompute blend ramps (avoid torch.linspace per window)
+                    if overlap > 0:
+                        ramp_up = torch.linspace(0, 1, overlap + 1, device=x.device, dtype=x.dtype)[1:]
+                        ramp_down = torch.linspace(1, 0, overlap + 1, device=x.device, dtype=x.dtype)[:-1]
+                        freelong_settings["cached_ramp_up"] = ramp_up
+                        freelong_settings["cached_ramp_down"] = ramp_down
+
+                    # Log temporal structure detection on first run
+                    if freelong_settings.get("log_structure", True):
+                        freelong_settings["log_structure"] = False
+                        logger.info(f"  Detected temporal structure: {num_frames} frames × {spatial_size} spatial tokens")
+
+                    # Calculate and log number of windows
+                    num_windows = 0
+                    temp_start = 0
+                    while temp_start < num_frames:
+                        num_windows += 1
+                        temp_start += stride
+                        if temp_start >= num_frames:
+                            break
+
+                    if freelong_settings.get("log_windows", True):
+                        freelong_settings["log_windows"] = False
+                        logger.info(f"  Window processing: {num_windows} windows with {overlap} frame overlap")
+                        logger.info(f"  Overlap strategy: 50% crossfade blending between windows")
+
+                # Get RoPE embeddings
+                freqs = block_args.get("pe")
 
                 # Reshape to [batch, frames, spatial, dim]
                 x_temporal = x.view(batch_size, num_frames, spatial_size, hidden_dim)
-
-                # Process in OVERLAPPING windows with crossfade blending
-                # This prevents hard discontinuities at window boundaries
-
-                # Get RoPE embeddings - need to slice these for each window too
-                freqs = block_args.get("pe")  # RoPE positional embeddings
-
-                # freqs shape is typically [batch, rope_dim, seq_len] or [1, seq_len, rope_dim]
-                # We need to figure out which dim is the sequence dim
-                freqs_seq_dim = None
-                if freqs is not None:
-                    for dim_idx, dim_size in enumerate(freqs.shape):
-                        if dim_size == seq_len:
-                            freqs_seq_dim = dim_idx
-                            break
-
-                # Use 50% overlap between windows for smooth blending
-                overlap = window_size // 2
-                stride = window_size - overlap
-
-                # Calculate number of windows
-                num_windows = 0
-                temp_start = 0
-                while temp_start < num_frames:
-                    num_windows += 1
-                    temp_start += stride
-                    if temp_start >= num_frames:
-                        break
-
-                # Log windowing setup on first run
-                if freelong_settings.get("log_windows", True):
-                    freelong_settings["log_windows"] = False
-                    logger.info(f"  Window processing: {num_windows} windows with {overlap} frame overlap")
-                    logger.info(f"  Overlap strategy: 50% crossfade blending between windows")
 
                 # Accumulator for blended output and weights
                 local_x_temporal = torch.zeros(batch_size, num_frames, spatial_size, hidden_dim,
@@ -522,22 +482,26 @@ class WanFreeLong:
                 weight_accumulator = torch.zeros(batch_size, num_frames, 1, 1,
                                                   device=x.device, dtype=x.dtype)
 
+                # Get cached ramps if available
+                cached_ramp_up = freelong_settings.get("cached_ramp_up")
+                cached_ramp_down = freelong_settings.get("cached_ramp_down")
+
+                # Save original values for in-place modification (avoid dict copy per window)
+                original_img = block_args.get("img")
+                original_pe = block_args.get("pe")
+
                 # Process overlapping windows
-                window_idx = 0
                 start_frame = 0
                 while start_frame < num_frames:
                     end_frame = min(start_frame + window_size, num_frames)
                     window_frames = end_frame - start_frame
 
-                    # Extract window
+                    # Extract window and flatten for block processing
                     window_x = x_temporal[:, start_frame:end_frame, :, :]
-
-                    # Flatten for block processing
                     window_flat = window_x.reshape(batch_size, window_frames * spatial_size, hidden_dim)
 
-                    # Create modified block_args for this window
-                    window_args = dict(block_args)
-                    window_args["img"] = window_flat
+                    # Modify block_args in-place (restore after)
+                    block_args["img"] = window_flat
 
                     # Slice RoPE embeddings to match window
                     if freqs is not None and freqs_seq_dim is not None:
@@ -545,30 +509,28 @@ class WanFreeLong:
                         end_token = end_frame * spatial_size
                         slices = [slice(None)] * len(freqs.shape)
                         slices[freqs_seq_dim] = slice(start_token, end_token)
-                        window_args["pe"] = freqs[tuple(slices)]
+                        block_args["pe"] = freqs[tuple(slices)]
 
                     # Run block on window
-                    window_out = original_block(window_args)
+                    window_out = original_block(block_args)
                     window_result = window_out["img"]
 
                     # Reshape back to temporal
                     window_result = window_result.view(batch_size, window_frames, spatial_size, hidden_dim)
 
-                    # Create blending weights - ramp up at start, ramp down at end
+                    # Create blending weights using cached ramps
                     # This creates smooth crossfades in overlapping regions
                     weights = torch.ones(window_frames, device=x.device, dtype=x.dtype)
 
-                    if start_frame > 0 and overlap > 0:
+                    if start_frame > 0 and overlap > 0 and cached_ramp_up is not None:
                         # Ramp up at the start (we're overlapping with previous window)
                         ramp_len = min(overlap, window_frames)
-                        ramp = torch.linspace(0, 1, ramp_len + 1, device=x.device, dtype=x.dtype)[1:]
-                        weights[:ramp_len] = ramp
+                        weights[:ramp_len] = cached_ramp_up[:ramp_len]
 
-                    if end_frame < num_frames and overlap > 0:
+                    if end_frame < num_frames and overlap > 0 and cached_ramp_down is not None:
                         # Ramp down at the end (next window will overlap with us)
                         ramp_len = min(overlap, window_frames)
-                        ramp = torch.linspace(1, 0, ramp_len + 1, device=x.device, dtype=x.dtype)[:-1]
-                        weights[-ramp_len:] = weights[-ramp_len:] * ramp
+                        weights[-ramp_len:] = weights[-ramp_len:] * cached_ramp_down[:ramp_len]
 
                     weights = weights.view(1, window_frames, 1, 1)
 
@@ -578,14 +540,18 @@ class WanFreeLong:
                     weight_accumulator[:, start_frame:end_frame].add_(weights)
 
                     # Free window tensors immediately
-                    del window_x, window_flat, window_args, window_out
+                    del window_x, window_flat, window_out
                     del window_result, weights, weighted_result
 
                     # Move to next window position
                     start_frame += stride
                     if start_frame >= num_frames:
                         break
-                    window_idx += 1
+
+                # Restore original block_args
+                block_args["img"] = original_img
+                if original_pe is not None:
+                    block_args["pe"] = original_pe
 
                 # Normalize by accumulated weights
                 weight_accumulator = weight_accumulator.clamp(min=1e-8)
