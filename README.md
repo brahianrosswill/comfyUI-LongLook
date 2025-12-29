@@ -11,9 +11,11 @@
 
 Works with both **i2v** (image-to-video) and **t2v** (text-to-video), though i2v sees the most benefit due to anchor-based continuation.
 
-See Demo Workflows in Folder and demo clip below:
+### Motion Scale Demo (NEW)
+[![Motion Scale Demo](https://img.youtube.com/vi/Zmkn6_vyMN8/maxresdefault.jpg)](https://youtu.be/Zmkn6_vyMN8)
 
-[![Watch the demo](https://img.youtube.com/vi/wZgoklsVplc/maxresdefault.jpg)](https://youtu.be/wZgoklsVplc)
+### FreeLong Demo
+[![FreeLong Demo](https://img.youtube.com/vi/wZgoklsVplc/maxresdefault.jpg)](https://youtu.be/wZgoklsVplc)
 
 If you find this useful:
 
