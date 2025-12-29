@@ -1,6 +1,6 @@
 # comfyUI-LongLook
 
-> **v3.0.5 Update:** New **FreeLong Enforcer** node for stricter motion locking. Performance optimizations (faster + improved float16 precision). Better defaults. See [Nodes](#nodes) section.
+> **v3.0.6 Update:** New **Motion Scale** node for temporal speed control via RoPE scaling. New **FreeLong Enforcer** for stricter motion locking. Performance optimizations (faster + improved float16 precision). See [Nodes](#nodes) section.
 
 **Towards consistent motion and prompt adherence for Wan 2.2 video generation.**
 
@@ -144,6 +144,28 @@ Experimental extension with stricter motion locking for complex motion scenes. U
 
 **When to use**: Complex motion scenes (vehicles cornering, camera movement, choreographed action) where standard FreeLong still shows drift. Try standard FreeLong first.
 
+### WanMotionScale (Temporal RoPE Scaling)
+Control motion speed by scaling temporal position embeddings. Works with both **i2v** and **t2v**.
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| enabled | true | Toggle on/off |
+| scale_t | 1.5 | Temporal scale: >1 = faster motion, <1 = slower, <0 = experimental reverse |
+| scale_y | 1.0 | Height scale (optional) |
+| scale_x | 1.0 | Width scale (optional) |
+
+**Recommended values for scale_t:**
+- **1.5** - Optimal for acceleration. Feels like ~2x motion speed, stable output
+- **1.0-1.5** - Safe range for faster motion
+- **0.75-1.0** - Slowdown range, works reliably
+- **Negative values** - Can produce reverse movement, but inconsistent since it contradicts training data. May work better for certain scene types or i2v
+
+**Use case:** Generate at scale_t=1.5 → RIFE 2x interpolation → effectively double video length with same motion coverage.
+
+**scale_x / scale_y notes:**
+- **t2v**: Can help adjust aspect ratio of generations
+- **i2v**: Can produce wild spatial effects - experimental
+
 ### WanContinuationConditioning
 Creates i2v conditioning from previous chunk's last frame.
 
@@ -181,6 +203,15 @@ Single generation with FreeLong for improved motion consistency. Includes A/B co
 | More natural/dynamic | Decrease `motion_lock_ratio` (0.05-0.1) |
 | Earlier motion establishment | Increase `motion_lock_blocks` (8-12) |
 | More detail influence | Decrease `motion_lock_blocks` (0-3) |
+
+### WanMotionScale
+| Goal | Adjustment |
+|------|------------|
+| Faster motion (for RIFE workflow) | `scale_t` = 1.5 (optimal) |
+| Gentle speedup | `scale_t` = 1.2-1.3 |
+| Slow motion effect | `scale_t` = 0.75-0.9 |
+| Experimental reverse | `scale_t` < 0 (inconsistent) |
+| Adjust t2v aspect ratio | Modify `scale_x` / `scale_y` |
 
 ## Technical Details
 

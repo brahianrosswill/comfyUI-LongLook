@@ -957,3 +957,106 @@ class WanFreeLongEnforcer:
         logger.info("=" * 60)
 
         return (model,)
+
+
+# ============================================================================
+# WanMotionScale - Temporal RoPE Scaling
+# ============================================================================
+
+class WanMotionScale:
+    """
+    Scale temporal position embeddings to control motion speed in Wan video generation.
+
+    Uses ComfyUI's built-in rope_options to scale temporal positions at the source,
+    making the model "think" frames are further apart in time.
+
+    Use case: Generate with scale_t > 1, then RIFE interpolate to fill gaps,
+    effectively getting longer videos with more motion coverage.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls) -> Dict[str, Any]:
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "enabled": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Enable/disable motion scaling."
+                }),
+                "scale_t": ("FLOAT", {
+                    "default": 1.5,
+                    "min": -10.0,
+                    "max": 10.0,
+                    "step": 0.05,
+                    "tooltip": "Temporal scale. >1 = faster motion, <1 = slower, <0 = reversed time positions. Experiment freely!"
+                }),
+            },
+            "optional": {
+                "scale_y": ("FLOAT", {
+                    "default": 1.0,
+                    "min": -10.0,
+                    "max": 10.0,
+                    "step": 0.05,
+                    "tooltip": "Height/Y scale. Affects vertical spatial encoding."
+                }),
+                "scale_x": ("FLOAT", {
+                    "default": 1.0,
+                    "min": -10.0,
+                    "max": 10.0,
+                    "step": 0.05,
+                    "tooltip": "Width/X scale. Affects horizontal spatial encoding."
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("MODEL",)
+    RETURN_NAMES = ("model",)
+    FUNCTION = "patch_model"
+    CATEGORY = "video/wan"
+    DESCRIPTION = "Scale temporal positions to control motion speed - use with RIFE for longer videos"
+
+    def patch_model(
+        self,
+        model,
+        enabled: bool,
+        scale_t: float,
+        scale_y: float = 1.0,
+        scale_x: float = 1.0,
+    ):
+        """
+        Patch the model to scale RoPE positions via transformer_options.
+        """
+        if not enabled:
+            logger.info("[WanMotionScale] DISABLED - Model returned without patching")
+            return (model,)
+
+        if scale_t == 1.0 and scale_y == 1.0 and scale_x == 1.0:
+            logger.info("[WanMotionScale] All scales are 1.0 - Model returned without patching")
+            return (model,)
+
+        logger.info("=" * 60)
+        logger.info("[WanMotionScale] TEMPORAL ROPE SCALING")
+        logger.info("=" * 60)
+        logger.info(f"  Temporal Scale (scale_t): {scale_t:.2f}x")
+        if scale_y != 1.0:
+            logger.info(f"  Height Scale (scale_y): {scale_y:.2f}x")
+        if scale_x != 1.0:
+            logger.info(f"  Width Scale (scale_x): {scale_x:.2f}x")
+        logger.info("=" * 60)
+
+        model = model.clone()
+
+        # Set rope_options in model_options which gets passed to transformer_options
+        rope_options = {
+            "scale_t": scale_t,
+            "scale_y": scale_y,
+            "scale_x": scale_x,
+        }
+
+        # Add rope_options to the model's transformer options
+        model.model_options.setdefault("transformer_options", {})["rope_options"] = rope_options
+
+        logger.info("[WanMotionScale] rope_options added to transformer_options")
+        logger.info("=" * 60)
+
+        return (model,)

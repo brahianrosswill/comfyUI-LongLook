@@ -10,21 +10,24 @@ from .nodes import (
     WanContinuationConditioning,
     WanFreeLong,
     WanFreeLongEnforcer,
+    WanMotionScale,
 )
 
 NODE_CLASS_MAPPINGS = {
     "WanContinuationConditioning": WanContinuationConditioning,
     "WanFreeLong": WanFreeLong,
     "WanFreeLongEnforcer": WanFreeLongEnforcer,
+    "WanMotionScale": WanMotionScale,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "WanContinuationConditioning": "Wan Continuation Conditioning",
     "WanFreeLong": "Wan FreeLong",
     "WanFreeLongEnforcer": "Wan FreeLong Enforcer",
+    "WanMotionScale": "Wan Motion Scale (Experimental)",
 }
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
 
 WEB_DIRECTORY = None
-__version__ = "3.0.5"
+__version__ = "3.0.6"
