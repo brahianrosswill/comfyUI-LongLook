@@ -146,6 +146,67 @@ class WanContinuationConditioning:
 # FreeLong Helper Functions
 # ============================================================================
 
+def freelong_enforced_blend(
+    global_features: torch.Tensor,
+    local_features: torch.Tensor,
+    motion_lock_ratio: float = 0.15,
+    low_freq_ratio: float = 0.5,
+    blend_strength: float = 1.0
+) -> torch.Tensor:
+    """
+    Enforced spectral blend with 3-tier frequency handling:
+    - Ultra-low (0 to motion_lock_ratio): 100% global - LOCKED motion skeleton
+    - Mid (motion_lock_ratio to low_freq_ratio): Blended global/local
+    - High (low_freq_ratio to 1.0): 100% local - fine details
+
+    This ensures motion trajectory cannot be overridden by local attention.
+    """
+    if blend_strength == 0.0:
+        return local_features
+
+    orig_dtype = global_features.dtype
+    global_float = global_features.float()
+    local_float = local_features.float()
+
+    # Single FFT pass
+    global_freq = torch.fft.rfft(global_float, dim=1)
+    local_freq = torch.fft.rfft(local_float, dim=1)
+    del global_float, local_float
+
+    num_freq = global_freq.shape[1]
+    lock_cutoff = int(num_freq * motion_lock_ratio)
+    blend_cutoff = int(num_freq * low_freq_ratio)
+
+    # Build 3-tier mask: 1.0 = global, 0.0 = local
+    global_mask = torch.zeros(num_freq, device=global_features.device, dtype=torch.float32)
+
+    # Tier 1: Ultra-low frequencies - 100% global (locked)
+    global_mask[:lock_cutoff] = 1.0
+
+    # Tier 2: Mid frequencies - smooth transition from global to local
+    if blend_cutoff > lock_cutoff:
+        mid_len = blend_cutoff - lock_cutoff
+        transition = torch.linspace(1, 0, mid_len + 2, device=global_features.device, dtype=torch.float32)[1:-1]
+        global_mask[lock_cutoff:blend_cutoff] = transition
+        del transition
+
+    # Tier 3: High frequencies - 100% local (already 0.0)
+
+    global_mask = global_mask.view(1, -1, *([1] * (len(global_freq.shape) - 2)))
+
+    # Blend: global * mask + local * (1 - mask)
+    blended_freq = global_freq * global_mask + local_freq * (1.0 - global_mask)
+    del global_freq, local_freq, global_mask
+
+    result = torch.fft.irfft(blended_freq, n=global_features.shape[1], dim=1)
+    del blended_freq
+
+    if blend_strength < 1.0:
+        result = local_features.float() * (1.0 - blend_strength) + result * blend_strength
+
+    return result.to(orig_dtype)
+
+
 def freelong_spectral_blend(
     global_features: torch.Tensor,
     local_features: torch.Tensor,
@@ -600,6 +661,299 @@ class WanFreeLong:
         logger.info(f"  Registered patches for {blocks_to_patch} transformer blocks ({blend_start_block} to {actual_end-1})")
         logger.info("=" * 60)
         logger.info("[FreeLong] Patching complete. FreeLong will activate during sampling.")
+        logger.info("=" * 60)
+
+        return (model,)
+
+
+# ============================================================================
+# FreeLong Enforcer - Stricter Motion Locking
+# ============================================================================
+
+class WanFreeLongEnforcer:
+    """
+    FreeLong Enforcer: Stricter motion consistency for Wan 2.2 video generation.
+
+    An enhanced version of FreeLong with stronger motion locking:
+    1. Early blocks use global-only attention (faster, locks motion early)
+    2. 3-tier frequency blending: locked ultra-low, blended mid, local high
+    3. Motion skeleton is protected from local attention override
+
+    Use this when standard FreeLong still shows motion drift or direction reversals.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls) -> Dict[str, Any]:
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "enabled": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Turn FreeLong Enforcer on or off."
+                }),
+                "motion_lock_ratio": ("FLOAT", {
+                    "default": 0.15,
+                    "min": 0.0,
+                    "max": 0.5,
+                    "step": 0.05,
+                    "tooltip": "Ultra-low frequencies that are 100% locked to global. Higher = stronger motion lock but may reduce dynamism. 0.15 is a good starting point."
+                }),
+                "blend_strength": ("FLOAT", {
+                    "default": 0.8,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.1,
+                    "tooltip": "How strongly the enforcer affects the video. Higher = more consistent but slightly softer."
+                }),
+                "low_freq_ratio": ("FLOAT", {
+                    "default": 0.5,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.05,
+                    "tooltip": "Upper bound for global influence (above motion_lock_ratio, frequencies are blended)."
+                }),
+                "local_window_frames": ("INT", {
+                    "default": 33,
+                    "min": 9,
+                    "max": 241,
+                    "step": 4,
+                    "tooltip": "Window size for local attention. Smaller = sharper details, larger = smoother."
+                }),
+                "motion_lock_blocks": ("INT", {
+                    "default": 5,
+                    "min": 0,
+                    "max": 20,
+                    "step": 1,
+                    "tooltip": "First N blocks use global-only (no local processing). Establishes motion early. 5 is a good default. 0 disables this feature."
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("MODEL",)
+    RETURN_NAMES = ("model",)
+    FUNCTION = "patch_model"
+    CATEGORY = "video/wan"
+    DESCRIPTION = "Stricter FreeLong with locked motion skeleton - use when standard FreeLong shows drift"
+
+    def patch_model(
+        self,
+        model,
+        enabled: bool,
+        motion_lock_ratio: float,
+        blend_strength: float,
+        low_freq_ratio: float,
+        local_window_frames: int,
+        motion_lock_blocks: int
+    ):
+        """
+        Patch the model with enforced motion locking.
+        """
+        local_window_size = ((local_window_frames - 1) // 4) + 1
+
+        if not enabled:
+            logger.info("[FreeLong Enforcer] DISABLED - Model returned without patching")
+            return (model,)
+
+        logger.info("=" * 60)
+        logger.info("[FreeLong Enforcer] APPLYING ENFORCED MOTION LOCKING")
+        logger.info("=" * 60)
+        logger.info(f"  Motion Lock Ratio: {motion_lock_ratio:.0%} (ultra-low frequencies locked)")
+        logger.info(f"  Blend Ratio: {motion_lock_ratio:.0%} - {low_freq_ratio:.0%} (mid frequencies blended)")
+        logger.info(f"  Local Ratio: {low_freq_ratio:.0%} - 100% (high frequencies from local)")
+        logger.info(f"  Motion Lock Blocks: first {motion_lock_blocks} blocks (global-only)")
+        logger.info(f"  Blend Strength: {blend_strength:.2f}")
+        logger.info(f"  Local Window: {local_window_frames} video frames → {local_window_size} latent frames")
+
+        model = model.clone()
+
+        enforcer_settings = {
+            "motion_lock_ratio": motion_lock_ratio,
+            "low_freq_ratio": low_freq_ratio,
+            "blend_strength": blend_strength,
+            "local_window_size": local_window_size,
+            "motion_lock_blocks": motion_lock_blocks,
+            "first_run": True,
+        }
+
+        def enforcer_block_patch(block_args, extra_args):
+            """
+            Enforcer patch with early-block global-only and 3-tier spectral blend.
+            """
+            original_block = extra_args["original_block"]
+            transformer_options = block_args.get("transformer_options", {})
+            block_index = transformer_options.get("block_index", 0)
+
+            strength = enforcer_settings["blend_strength"]
+            if strength == 0.0:
+                return original_block(block_args)
+
+            try:
+                x = block_args["img"]
+                batch_size, seq_len, hidden_dim = x.shape
+
+                window_size = enforcer_settings["local_window_size"]
+                lock_ratio = enforcer_settings["motion_lock_ratio"]
+                low_ratio = enforcer_settings["low_freq_ratio"]
+                lock_blocks = enforcer_settings["motion_lock_blocks"]
+
+                if enforcer_settings["first_run"]:
+                    enforcer_settings["first_run"] = False
+                    logger.info("")
+                    logger.info("[FreeLong Enforcer] PROCESSING STARTING")
+                    logger.info(f"  Input shape: batch={batch_size}, seq_len={seq_len}, hidden_dim={hidden_dim}")
+
+                # ============ GLOBAL STREAM ============
+                global_out = original_block(block_args)
+                global_x = global_out["img"]
+
+                # Early blocks: global-only (faster, establishes motion)
+                if block_index < lock_blocks:
+                    if enforcer_settings.get("log_lock_blocks", True) and block_index == 0:
+                        enforcer_settings["log_lock_blocks"] = False
+                        logger.info(f"  Blocks 0-{lock_blocks-1}: Global-only (motion locking phase)")
+                    return {"img": global_x}
+
+                # ============ LOCAL STREAM (same as FreeLong) ============
+                cached_seq_len = enforcer_settings.get("cached_seq_len")
+                if cached_seq_len == seq_len:
+                    num_frames = enforcer_settings["cached_num_frames"]
+                    spatial_size = enforcer_settings["cached_spatial_size"]
+                    freqs_seq_dim = enforcer_settings.get("cached_freqs_seq_dim")
+                    overlap = enforcer_settings["cached_overlap"]
+                    stride = enforcer_settings["cached_stride"]
+                else:
+                    num_frames = None
+                    for candidate_frames in [21, 17, 13, 9, 5]:
+                        if seq_len % candidate_frames == 0:
+                            num_frames = candidate_frames
+                            break
+
+                    if num_frames is None or num_frames <= window_size:
+                        # Fallback: apply enforced blend to global only
+                        blended_x = freelong_enforced_blend(global_x, global_x, lock_ratio, low_ratio, strength)
+                        return {"img": blended_x}
+
+                    spatial_size = seq_len // num_frames
+                    overlap = window_size // 2
+                    stride = window_size - overlap
+
+                    freqs = block_args.get("pe")
+                    freqs_seq_dim = None
+                    if freqs is not None:
+                        for dim_idx, dim_size in enumerate(freqs.shape):
+                            if dim_size == seq_len:
+                                freqs_seq_dim = dim_idx
+                                break
+
+                    enforcer_settings["cached_seq_len"] = seq_len
+                    enforcer_settings["cached_num_frames"] = num_frames
+                    enforcer_settings["cached_spatial_size"] = spatial_size
+                    enforcer_settings["cached_freqs_seq_dim"] = freqs_seq_dim
+                    enforcer_settings["cached_overlap"] = overlap
+                    enforcer_settings["cached_stride"] = stride
+
+                    if overlap > 0:
+                        ramp_up = torch.linspace(0, 1, overlap + 1, device=x.device, dtype=x.dtype)[1:]
+                        ramp_down = torch.linspace(1, 0, overlap + 1, device=x.device, dtype=x.dtype)[:-1]
+                        enforcer_settings["cached_ramp_up"] = ramp_up
+                        enforcer_settings["cached_ramp_down"] = ramp_down
+
+                    if enforcer_settings.get("log_structure", True):
+                        enforcer_settings["log_structure"] = False
+                        logger.info(f"  Blocks {lock_blocks}+: Dual-stream with enforced 3-tier blend")
+                        logger.info(f"  Detected: {num_frames} frames × {spatial_size} spatial tokens")
+
+                freqs = block_args.get("pe")
+                x_temporal = x.view(batch_size, num_frames, spatial_size, hidden_dim)
+
+                local_x_temporal = torch.zeros(batch_size, num_frames, spatial_size, hidden_dim,
+                                               device=x.device, dtype=x.dtype)
+                weight_accumulator = torch.zeros(batch_size, num_frames, 1, 1,
+                                                  device=x.device, dtype=x.dtype)
+
+                cached_ramp_up = enforcer_settings.get("cached_ramp_up")
+                cached_ramp_down = enforcer_settings.get("cached_ramp_down")
+
+                original_img = block_args.get("img")
+                original_pe = block_args.get("pe")
+
+                start_frame = 0
+                while start_frame < num_frames:
+                    end_frame = min(start_frame + window_size, num_frames)
+                    window_frames = end_frame - start_frame
+
+                    window_x = x_temporal[:, start_frame:end_frame, :, :]
+                    window_flat = window_x.reshape(batch_size, window_frames * spatial_size, hidden_dim)
+
+                    block_args["img"] = window_flat
+
+                    if freqs is not None and freqs_seq_dim is not None:
+                        start_token = start_frame * spatial_size
+                        end_token = end_frame * spatial_size
+                        slices = [slice(None)] * len(freqs.shape)
+                        slices[freqs_seq_dim] = slice(start_token, end_token)
+                        block_args["pe"] = freqs[tuple(slices)]
+
+                    window_out = original_block(block_args)
+                    window_result = window_out["img"]
+                    window_result = window_result.view(batch_size, window_frames, spatial_size, hidden_dim)
+
+                    weights = torch.ones(window_frames, device=x.device, dtype=x.dtype)
+
+                    if start_frame > 0 and overlap > 0 and cached_ramp_up is not None:
+                        ramp_len = min(overlap, window_frames)
+                        weights[:ramp_len] = cached_ramp_up[:ramp_len]
+
+                    if end_frame < num_frames and overlap > 0 and cached_ramp_down is not None:
+                        ramp_len = min(overlap, window_frames)
+                        weights[-ramp_len:] = weights[-ramp_len:] * cached_ramp_down[:ramp_len]
+
+                    weights = weights.view(1, window_frames, 1, 1)
+
+                    weighted_result = window_result * weights
+                    local_x_temporal[:, start_frame:end_frame].add_(weighted_result)
+                    weight_accumulator[:, start_frame:end_frame].add_(weights)
+
+                    del window_x, window_flat, window_out
+                    del window_result, weights, weighted_result
+
+                    start_frame += stride
+                    if start_frame >= num_frames:
+                        break
+
+                block_args["img"] = original_img
+                if original_pe is not None:
+                    block_args["pe"] = original_pe
+
+                weight_accumulator = weight_accumulator.clamp(min=1e-8)
+                local_x_temporal.div_(weight_accumulator)
+                del weight_accumulator
+                local_x = local_x_temporal.reshape(batch_size, seq_len, hidden_dim)
+                del local_x_temporal, x_temporal
+
+                # ============ ENFORCED 3-TIER BLEND ============
+                blended_x = freelong_enforced_blend(global_x, local_x, lock_ratio, low_ratio, strength)
+
+                del global_x, local_x
+
+                return {"img": blended_x}
+
+            except Exception as e:
+                logger.error(f"[FreeLong Enforcer] Error in block {block_index}: {e}", exc_info=True)
+                return original_block(block_args)
+
+        num_blocks = 40
+        for i in range(num_blocks):
+            model.set_model_patch_replace(
+                enforcer_block_patch,
+                "dit",
+                "double_block",
+                i
+            )
+
+        logger.info(f"  Registered enforcer patches for {num_blocks} transformer blocks")
+        logger.info("=" * 60)
+        logger.info("[FreeLong Enforcer] Patching complete.")
         logger.info("=" * 60)
 
         return (model,)

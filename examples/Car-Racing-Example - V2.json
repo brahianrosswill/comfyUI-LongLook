@@ -1,8 +1,8 @@
 {
   "id": "7de7f99a-a2fa-45bd-8976-cb3dc53eda69",
   "revision": 0,
-  "last_node_id": 331,
-  "last_link_id": 666,
+  "last_node_id": 332,
+  "last_link_id": 668,
   "nodes": [
     {
       "id": 35,
@@ -1195,13 +1195,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk2_00241.mp4",
+            "filename": "Chunk2_00247.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk2_00241.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk2_00241.mp4"
+            "workflow": "Chunk2_00247.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk2_00247.mp4"
           }
         }
       }
@@ -1278,13 +1278,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk3_00038.mp4",
+            "filename": "Chunk3_00045.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk3_00038.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk3_00038.mp4"
+            "workflow": "Chunk3_00045.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk3_00045.mp4"
           }
         }
       }
@@ -1361,13 +1361,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk4_00033.mp4",
+            "filename": "Chunk4_00040.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk4_00033.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk4_00033.mp4"
+            "workflow": "Chunk4_00040.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk4_00040.mp4"
           }
         }
       }
@@ -1444,13 +1444,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk5_00024.mp4",
+            "filename": "Chunk5_00039.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk5_00024.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk5_00024.mp4"
+            "workflow": "Chunk5_00039.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk5_00039.mp4"
           }
         }
       }
@@ -1527,13 +1527,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk6_00027.mp4",
+            "filename": "Chunk6_00041.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk6_00027.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk6_00027.mp4"
+            "workflow": "Chunk6_00041.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk6_00041.mp4"
           }
         }
       }
@@ -1610,13 +1610,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk7_00024.mp4",
+            "filename": "Chunk7_00037.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk7_00024.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk7_00024.mp4"
+            "workflow": "Chunk7_00037.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk7_00037.mp4"
           }
         }
       }
@@ -1693,13 +1693,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk8_00026.mp4",
+            "filename": "Chunk8_00039.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk8_00026.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk8_00026.mp4"
+            "workflow": "Chunk8_00039.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk8_00039.mp4"
           }
         }
       }
@@ -2186,13 +2186,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "Chunk1_00222.mp4",
+            "filename": "Chunk1_00228.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "Chunk1_00222.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk1_00222.mp4"
+            "workflow": "Chunk1_00228.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\Chunk1_00228.mp4"
           }
         }
       }
@@ -2598,51 +2598,6 @@
       ],
       "color": "#223",
       "bgcolor": "#335"
-    },
-    {
-      "id": 166,
-      "type": "SetNode",
-      "pos": [
-        1834.2881176464582,
-        401.21645096687644
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 94,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "link": 447
-        }
-      ],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": null
-        }
-      ],
-      "title": "Set_CLIP",
-      "properties": {
-        "previousName": "CLIP",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.5.2",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP"
-      ],
-      "color": "#432",
-      "bgcolor": "#653"
     },
     {
       "id": 247,
@@ -4816,150 +4771,6 @@
       "bgcolor": "#593930"
     },
     {
-      "id": 254,
-      "type": "ModelSamplingSD3",
-      "pos": [
-        1518.9207115863405,
-        420.9103835112871
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {},
-      "order": 93,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 558
-        }
-      ],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "slot_index": 0,
-          "links": [
-            559
-          ]
-        }
-      ],
-      "title": "High Shift",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.46",
-        "Node name for S&R": "ModelSamplingSD3",
-        "ue_properties": {
-          "version": "7.5.2",
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        8.000000000000002
-      ]
-    },
-    {
-      "id": 91,
-      "type": "WanFreeLong",
-      "pos": [
-        1483.4979846822193,
-        160.16326626339267
-      ],
-      "size": [
-        280,
-        178
-      ],
-      "flags": {},
-      "order": 99,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 559
-        }
-      ],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            455
-          ]
-        }
-      ],
-      "title": "FreeLong (Spectral Blend)",
-      "properties": {
-        "cnr_id": "comfyui-longlook",
-        "ver": "6ee1043742071907c8e334a29e21a40a6a0f4e84",
-        "Node name for S&R": "WanFreeLong",
-        "aux_id": "shootthesound/comfyUI-LongLook",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.5.2",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        true,
-        0.8,
-        0.8,
-        29,
-        0,
-        -1
-      ],
-      "color": "#432",
-      "bgcolor": "#653"
-    },
-    {
-      "id": 173,
-      "type": "SetNode",
-      "pos": [
-        1845.814510226114,
-        226.68171295330913
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 102,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "link": 455
-        }
-      ],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": []
-        }
-      ],
-      "title": "Set_FREELONG",
-      "properties": {
-        "previousName": "FREELONG",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.5.2",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "FREELONG"
-      ],
-      "color": "#223",
-      "bgcolor": "#335"
-    },
-    {
       "id": 3,
       "type": "CLIPTextEncode",
       "pos": [
@@ -5422,13 +5233,13 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "16fpsPreview_00029.mp4",
+            "filename": "16fpsPreview_00042.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 16,
-            "workflow": "16fpsPreview_00029.png",
-            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\16fpsPreview_00029.mp4"
+            "workflow": "16fpsPreview_00042.png",
+            "fullpath": "S:\\Auto\\ComfyUI_windows_portable\\ComfyUI\\output\\16fpsPreview_00042.mp4"
           }
         }
       }
@@ -6569,6 +6380,190 @@
       ],
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "id": 254,
+      "type": "ModelSamplingSD3",
+      "pos": [
+        1518.9207115863405,
+        420.9103835112871
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 93,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 558
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            668
+          ]
+        }
+      ],
+      "title": "High Shift",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.46",
+        "Node name for S&R": "ModelSamplingSD3",
+        "ue_properties": {
+          "version": "7.5.2",
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        8.000000000000002
+      ]
+    },
+    {
+      "id": 173,
+      "type": "SetNode",
+      "pos": [
+        2043.7267321332738,
+        335.49059685897686
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 102,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "link": 667
+        }
+      ],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": []
+        }
+      ],
+      "title": "Set_FREELONG",
+      "properties": {
+        "previousName": "FREELONG",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "FREELONG"
+      ],
+      "color": "#223",
+      "bgcolor": "#335"
+    },
+    {
+      "id": 332,
+      "type": "WanFreeLongEnforcer",
+      "pos": [
+        1731.9878280495345,
+        165.58806675549084
+      ],
+      "size": [
+        285.166015625,
+        178
+      ],
+      "flags": {},
+      "order": 99,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 668
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            667
+          ]
+        }
+      ],
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "cnr_id": "comfyui-longlook",
+        "ver": "2232b5fc78d39af7dbbd22029bb9cd35f6332a79",
+        "Node name for S&R": "WanFreeLongEnforcer"
+      },
+      "widgets_values": [
+        true,
+        0.15,
+        0.8,
+        0.8,
+        29,
+        5
+      ]
+    },
+    {
+      "id": 166,
+      "type": "SetNode",
+      "pos": [
+        1459.1973351747968,
+        155.23983231083642
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 94,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "link": 447
+        }
+      ],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "title": "Set_CLIP",
+      "properties": {
+        "previousName": "CLIP",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
     }
   ],
   "links": [
@@ -6779,14 +6774,6 @@
       149,
       6,
       "CLIP"
-    ],
-    [
-      455,
-      91,
-      0,
-      173,
-      0,
-      "MODEL"
     ],
     [
       470,
@@ -7213,14 +7200,6 @@
       "MODEL"
     ],
     [
-      559,
-      254,
-      0,
-      91,
-      0,
-      "MODEL"
-    ],
-    [
       562,
       188,
       0,
@@ -7619,6 +7598,22 @@
       241,
       0,
       "IMAGE"
+    ],
+    [
+      667,
+      332,
+      0,
+      173,
+      0,
+      "MODEL"
+    ],
+    [
+      668,
+      254,
+      0,
+      332,
+      0,
+      "MODEL"
     ]
   ],
   "groups": [
@@ -13343,10 +13338,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.797202450000002,
+      "scale": 0.544500000000004,
       "offset": [
-        -1351.9613341347829,
-        711.3840971076077
+        276.9889638354007,
+        1187.797320717348
       ]
     },
     "frontendVersion": "1.34.9",
