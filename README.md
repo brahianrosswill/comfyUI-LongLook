@@ -161,7 +161,7 @@ Creates i2v conditioning from previous chunk's last frame.
 Multi-chunk continuation with different prompts per chunk for scene evolution.
 
 ### Single Shot (`Single-Shot-Example.json`)
-Single generation with FreeLong for improved motion consistency.  This workflow shows you a short clip with and without FeeLong node activation for comparison of 81+ frame gens
+Single generation with FreeLong for improved motion consistency. Includes A/B comparison with and without FreeLong. Note: For 81+ frame generations, results vary - FreeLong helps sometimes but not always. The consistent benefit is within 81 frames.
 
 ## Parameter Tuning
 
