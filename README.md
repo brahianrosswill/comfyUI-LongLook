@@ -116,13 +116,30 @@ Patches Wan model for FreeLong spectral blending.
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | enabled | true | Toggle for A/B testing |
-| blend_strength | 0.7 | Spectral blend strength (0=off, 1=full) |
-| low_freq_ratio | 0.5 | Portion of spectrum from global stream |
+| blend_strength | 0.8 | Spectral blend strength (0=off, 1=full) |
+| low_freq_ratio | 0.8 | Portion of spectrum from global stream |
 | local_window_frames | 33 | Video frames for detail window (~40% of total recommended) |
 | blend_start_block | 0 | First transformer block to apply |
 | blend_end_block | -1 | Last block (-1 = all) |
 
-**Optimal settings**: `blend_strength=0.8`, `low_freq_ratio=0.8`, `local_window_frames=33` for 81-frame videos
+### WanFreeLongEnforcer (Stricter Motion Locking)
+Experimental extension with stricter motion locking for complex motion scenes. Use this if standard FreeLong still shows motion drift or trajectory reversals.
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| enabled | true | Toggle for A/B testing |
+| motion_lock_ratio | 0.15 | Ultra-low frequencies locked 100% to global (motion skeleton) |
+| blend_strength | 0.8 | Overall effect strength |
+| low_freq_ratio | 0.5 | Upper bound for blended zone |
+| local_window_frames | 33 | Video frames for detail window |
+| motion_lock_blocks | 5 | First N blocks use global-only (establishes motion early) |
+
+**How it differs from standard FreeLong:**
+- **3-tier frequency blending**: Ultra-low (locked) + mid (blended) + high (local details)
+- **Early-block locking**: First N blocks skip local processing entirely to establish motion trajectory
+- **Protected motion skeleton**: Ultra-low frequencies cannot be overridden by local attention
+
+**When to use**: Complex motion scenes (vehicles cornering, camera movement, choreographed action) where standard FreeLong still shows drift. Try standard FreeLong first.
 
 ### WanContinuationConditioning
 Creates i2v conditioning from previous chunk's last frame.
@@ -145,6 +162,7 @@ Single generation with FreeLong for improved motion consistency.  This workflow 
 
 ## Parameter Tuning
 
+### WanFreeLong
 | Goal | Adjustment |
 |------|------------|
 | More motion consistency | Increase `blend_strength` (0.7-0.9) |
@@ -152,6 +170,14 @@ Single generation with FreeLong for improved motion consistency.  This workflow 
 | Smoother motion | Increase `low_freq_ratio` (0.5-0.7) |
 | More dynamic motion | Decrease `low_freq_ratio` (0.3-0.4) |
 | Less morphing | Increase `local_window_frames` (49-65) |
+
+### WanFreeLongEnforcer
+| Goal | Adjustment |
+|------|------------|
+| Stronger motion lock | Increase `motion_lock_ratio` (0.2-0.3) |
+| More natural/dynamic | Decrease `motion_lock_ratio` (0.05-0.1) |
+| Earlier motion establishment | Increase `motion_lock_blocks` (8-12) |
+| More detail influence | Decrease `motion_lock_blocks` (0-3) |
 
 ## Technical Details
 
@@ -161,6 +187,12 @@ Single generation with FreeLong for improved motion consistency.  This workflow 
 - Complementary FFT filters (low + high = 1.0)
 - RoPE embeddings properly sliced per window
 - Float32 FFT operations for numerical stability
+
+### v3.0.4 Performance Optimizations
+- **Single-FFT spectral blending**: Blend computed in frequency domain before inverse FFT (faster + improved float16 precision)
+- **Cached temporal detection**: Frame structure and blend ramps computed once, reused across all 40 blocks
+- **Reduced memory allocations**: In-place operations and immediate tensor cleanup in window processing
+- **Enforcer early-block optimization**: Global-only blocks skip windowed processing entirely (faster than standard FreeLong for those blocks)
 
 ### Continuation Conditioning
 - Last frame extracted from decoded video (float32, no 8-bit quantization)

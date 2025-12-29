@@ -307,18 +307,18 @@ class WanFreeLong:
                     "tooltip": "Turn FreeLong on or off. Useful for comparing results with and without."
                 }),
                 "blend_strength": ("FLOAT", {
-                    "default": 0.7,
+                    "default": 0.8,
                     "min": 0.0,
                     "max": 1.0,
                     "step": 0.1,
-                    "tooltip": "How strongly FreeLong affects the video. Higher = more consistent motion but slightly softer. Lower = sharper but may drift. 0.7 is optimal for most cases."
+                    "tooltip": "How strongly FreeLong affects the video. Higher = more consistent motion but slightly softer. Lower = sharper but may drift. 0.8 is optimal for most cases."
                 }),
                 "low_freq_ratio": ("FLOAT", {
-                    "default": 0.5,
+                    "default": 0.8,
                     "min": 0.0,
                     "max": 1.0,
                     "step": 0.05,
-                    "tooltip": "Balance between motion consistency and fine detail. Higher = smoother, more consistent motion. Lower = more dynamic but may drift. 0.5 is a good balance."
+                    "tooltip": "Balance between motion consistency and fine detail. Higher = smoother, more consistent motion. Lower = more dynamic but may drift. 0.8 is a good balance."
                 }),
                 "local_window_frames": ("INT", {
                     "default": 33,
