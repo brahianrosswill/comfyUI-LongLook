@@ -1,5 +1,7 @@
 # comfyUI-LongLook
 
+> **v3.0.5 Update:** New **FreeLong Enforcer** node for stricter motion locking. Performance optimizations (faster + improved float16 precision). Better defaults. See [Nodes](#nodes) section.
+
 **Towards consistent motion and prompt adherence for Wan 2.2 video generation.**
 
 **TL;DR:**
