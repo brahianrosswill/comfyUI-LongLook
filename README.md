@@ -260,6 +260,7 @@ If you need longer videos, chunking is the proven approach.
 
 - FreeLong paper: [arxiv.org/abs/2407.19918](https://arxiv.org/abs/2407.19918)
 - Wan 2.2: Alibaba
+- End-frame guidance (WanContinuationConditioning): [@onerok](https://github.com/onerok)
 
 ## License
 
