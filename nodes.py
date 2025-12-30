@@ -138,7 +138,9 @@ class WanContinuationConditioning:
             # Preserve anchor latent frames
             concat_mask[:, :, :anchor_latent_frames] = 0.0
         else:
-            # Core-style frame mask with end-frame preservation, then reshape to latent mask
+            # ComfyCore-style frame mask with end-frame preservation
+            # Uses expanded [1, 4, latent_frames, h, w] format for per-subframe control
+            # (vs simple [1, 1, latent_frames, h, w] when no end_frame)
             frame_mask = torch.ones(
                 1, 1, encoded_latent_frames * 4,
                 concat_latent_image.shape[-2],
