@@ -1006,6 +1006,8 @@ class WanMotionScale:
                     "step": 0.05,
                     "tooltip": "Width/X scale. Affects horizontal spatial encoding."
                 }),
+                # shift_t, shift_y, shift_x support exists in backend but hidden from UI
+                # (RoPE uses relative positions, so shifts have minimal effect)
             }
         }
 
@@ -1022,26 +1024,39 @@ class WanMotionScale:
         scale_t: float,
         scale_y: float = 1.0,
         scale_x: float = 1.0,
+        shift_t: float = 0.0,
+        shift_y: float = 0.0,
+        shift_x: float = 0.0,
     ):
         """
-        Patch the model to scale RoPE positions via transformer_options.
+        Patch the model to scale/shift RoPE positions via transformer_options.
         """
         if not enabled:
             logger.info("[WanMotionScale] DISABLED - Model returned without patching")
             return (model,)
 
-        if scale_t == 1.0 and scale_y == 1.0 and scale_x == 1.0:
-            logger.info("[WanMotionScale] All scales are 1.0 - Model returned without patching")
+        # Check if anything is actually being changed
+        no_scale = (scale_t == 1.0 and scale_y == 1.0 and scale_x == 1.0)
+        no_shift = (shift_t == 0.0 and shift_y == 0.0 and shift_x == 0.0)
+        if no_scale and no_shift:
+            logger.info("[WanMotionScale] All values at default - Model returned without patching")
             return (model,)
 
         logger.info("=" * 60)
-        logger.info("[WanMotionScale] TEMPORAL ROPE SCALING")
+        logger.info("[WanMotionScale] TEMPORAL ROPE SCALING/SHIFTING")
         logger.info("=" * 60)
-        logger.info(f"  Temporal Scale (scale_t): {scale_t:.2f}x")
+        if scale_t != 1.0:
+            logger.info(f"  Temporal Scale (scale_t): {scale_t:.2f}x")
         if scale_y != 1.0:
             logger.info(f"  Height Scale (scale_y): {scale_y:.2f}x")
         if scale_x != 1.0:
             logger.info(f"  Width Scale (scale_x): {scale_x:.2f}x")
+        if shift_t != 0.0:
+            logger.info(f"  Temporal Shift (shift_t): {shift_t:.1f}")
+        if shift_y != 0.0:
+            logger.info(f"  Height Shift (shift_y): {shift_y:.1f}")
+        if shift_x != 0.0:
+            logger.info(f"  Width Shift (shift_x): {shift_x:.1f}")
         logger.info("=" * 60)
 
         model = model.clone()
@@ -1051,6 +1066,9 @@ class WanMotionScale:
             "scale_t": scale_t,
             "scale_y": scale_y,
             "scale_x": scale_x,
+            "shift_t": shift_t,
+            "shift_y": shift_y,
+            "shift_x": shift_x,
         }
 
         # Add rope_options to the model's transformer options
